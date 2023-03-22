@@ -22,16 +22,15 @@ function ajk_template_trace_admin_bar()
 
 	global $wp_admin_bar, $ajk_current_template;
 
-	$cutoff = strpos( $ajk_current_template, '/themes/' ) + 8;// for showing an abbreviated path. full path is on hover
+	$root_cutoff = strpos( $ajk_current_template, '/wp-content/' ) + 1;// for showing an abbreviated path. full path is on hover
+	$cutoff = $root_cutoff + 18;// /wp-content/themes/
 
-	/* ADMIN BAR ITEM */
 	$wp_admin_bar->add_menu([
 		'parent' => false,
 		'id' => 'template-trace',
 		'title' => basename($ajk_current_template),
 		'meta' => ['title' => $ajk_current_template]
 	]);
-	
 	
 	/* ITEM DROP DOWN: Get includes that are in the themes folder and that were called after the base template file */
 	$included_templates = [];
@@ -41,15 +40,18 @@ function ajk_template_trace_admin_bar()
 	foreach ( $included_files as $path )
 	{
 		if ( $path === $ajk_current_template ) $reached_base = true;
-		// ok we've hit the base template in the includes array, not start looking for stuff in the themes folder
-		if ( $reached_base && strpos($path, '/themes/') )
-		{
-			$wp_admin_bar->add_menu([
-				'parent' => 'template-trace',
-				'id' => 'template-trace-sub-' . ++$i,
-				'title' => substr($path, $cutoff),
-				'meta' => ['title' => $path]
-			]);
-		}
+		if ( ! $reached_base ) continue;
+		// ok we've hit the base template in the includes array, now start looking for stuff in the themes folder
+		
+		if ( strpos($path, '/themes/') ) $in_themes = true;
+		elseif ( strpos($path, 'template') ) $in_themes = false;
+		else continue;
+
+		$wp_admin_bar->add_menu([
+			'parent' => 'template-trace',
+			'id' => 'template-trace-sub-' . ++$i,
+			'title' => $in_themes ? substr($path, $cutoff) : substr($path, $root_cutoff),
+			'meta' => ['title' => $path]
+		]);
 	}
 }
